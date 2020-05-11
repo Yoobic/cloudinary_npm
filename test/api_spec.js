@@ -773,6 +773,29 @@ describe("api", function () {
         });
       });
     });
+    describe(":ocr", function () {
+      let writeSpy, xhr;
+      before(function () {
+        xhr = sinon.useFakeXMLHttpRequest();
+        writeSpy = sinon.spy(ClientRequest.prototype, 'write');
+      });
+      after(function () {
+        writeSpy.restore();
+        xhr.restore();
+      });
+      it("should support ocr parameter in update", function () {
+        cloudinary.v2.api.update("sample", { ocr: "adv_ocr" });
+        sinon.assert.calledWith(writeSpy, sinon.match(helper.apiParamMatcher("ocr", "adv_ocr")));
+      });
+      it("should return 'Illegal value' errors for unknown ocr values", function () {
+        this.timeout(TIMEOUT.MEDIUM);
+        return cloudinary.v2.api.update("sample", {
+          ocr: "illegal",
+        }).then(
+          () => expect().fail()
+        ).catch(({ error }) => expect(error.message).to.contain("Illegal value"));
+      });
+    });
     it("should support setting manual moderation status", () => {
       this.timeout(TIMEOUT.LONG);
       return uploadImage({
@@ -780,15 +803,6 @@ describe("api", function () {
       }).then(upload_result => cloudinary.v2.api.update(upload_result.public_id, {
         moderation_status: "approved",
       })).then(api_result => expect(api_result.moderation[0].status).to.eql("approved"));
-    });
-    it("should support requesting ocr info", function () {
-      this.timeout(TIMEOUT.MEDIUM);
-      return uploadImage()
-        .then(upload_result => cloudinary.v2.api.update(upload_result.public_id, {
-          ocr: "illegal",
-        })).then(
-          () => expect().fail()
-        ).catch(({ error }) => expect(error.message).to.contain("Illegal value"));
     });
     it("should support requesting raw conversion", function () {
       this.timeout(TIMEOUT.MEDIUM);

@@ -560,14 +560,6 @@ describe("uploader", function () {
       expect(result.moderation[0].kind).to.eql("manual");
     });
   });
-  it("should support requesting ocr analysis", function () {
-    return cloudinary.v2.uploader.upload(IMAGE_FILE, {
-      ocr: "adv_ocr",
-      tags: UPLOAD_TAGS,
-    }).then(function (result) {
-      expect(result.info.ocr).to.have.key("adv_ocr");
-    });
-  });
   it("should support requesting raw conversion", function () {
     return cloudinary.v2.uploader.upload(RAW_FILE, {
       raw_convert: "illegal",
@@ -1046,7 +1038,36 @@ describe("uploader", function () {
       });
     });
   });
-
+  describe(":ocr", function () {
+    let spy, xhr;
+    before(function () {
+      xhr = sinon.useFakeXMLHttpRequest();
+      spy = sinon.spy(ClientRequest.prototype, 'write');
+    });
+    after(function () {
+      spy.restore();
+      xhr.restore();
+    });
+    it("should support ocr parameter in upload", function () {
+      cloudinary.v2.uploader.upload("cloudinary", { ocr: "adv_ocr" });
+      sinon.assert.calledWith(spy, sinon.match(helper.uploadParamMatcher("ocr", "adv_ocr")));
+    });
+    it("should support ocr parameter in explicit", function () {
+      cloudinary.v2.uploader.explicit("cloudinary", { ocr: "adv_ocr" });
+      sinon.assert.calledWith(spy, sinon.match(helper.uploadParamMatcher("ocr", "adv_ocr")));
+    });
+    it("should support ocr in response data structure", function () {
+      return cloudinary.v2.uploader.upload(IMAGE_FILE, {
+        ocr: "adv_ocr",
+        tags: UPLOAD_TAGS,
+      }).then(function (result) {
+        expect(result.info).not.to.be.empty();
+        expect(result.info.ocr).to.have.key("adv_ocr");
+        expect(result.info.ocr.adv_ocr).to.have.key("status");
+        expect(result.info.ocr.adv_ocr).to.have.key("data");
+      });
+    });
+  });
   describe("structured metadata fields", function () {
     const metadata_fields = { [METADATA_FIELD_UNIQUE_EXTERNAL_ID]: METADATA_FIELD_VALUE };
     before(function () {
